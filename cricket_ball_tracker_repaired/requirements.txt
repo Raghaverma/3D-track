@@ -1,0 +1,8 @@
+# Inference-only dependencies for the cricket ball tracker bundle.
+# Verified on the versions in the `mmpose_prod` conda env; the pins are lower
+# bounds, not exact requirements. torch must match the machine's CUDA build --
+# install it from pytorch.org rather than from this file if in doubt.
+torch>=2.0
+timm>=1.0
+opencv-python>=4.5
+numpy>=1.24

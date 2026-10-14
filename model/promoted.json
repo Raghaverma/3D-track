@@ -1,0 +1,9 @@
+{
+  "run_dir": "/home/ubuntu/cricket_events_accuracy/checkpoints/cricket_v3_rny008_gsm_gru_fov256pad16",
+  "epoch": 23,
+  "val_mAP": 0.8876105012575103,
+  "best_epoch_val_mAP": 0.8876105012575103,
+  "best_epoch": 23,
+  "is_best_epoch": true,
+  "epochs_trained": 50
+}

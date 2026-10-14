@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ball track - 3D</title>
+<style>
+html,body{margin:0;height:100%;background:#0b1220;color:#e8eefc;font-family:-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+#ui{position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:8px;width:300px;max-width:calc(100vw - 24px)}
+.card{background:rgba(10,18,36,.80);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5}
+.card b{font-size:14px}
+button,select{background:#1d2c52;color:#e8eefc;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:5px 9px;font-size:12px;cursor:pointer}
+button:hover{background:#2a3f78}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
+input[type=range]{flex:1;min-width:120px}
+table{border-collapse:collapse;width:100%}td{padding:1px 0}td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.lab{position:absolute;transform:translate(-50%,-135%);font-size:11px;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.65);pointer-events:none;white-space:nowrap}
+</style></head><body>
+<canvas id="c"></canvas><div id="labels"></div>
+<div id="ui">
+  <div class="card"><b>Ball track &middot; 3D</b><table id="stats"></table></div>
+  <div class="card"><div class="row" id="views"></div>
+    <div class="row"><label><input type="checkbox" id="grow" checked> trail grows with the ball</label></div></div>
+  <div class="card"><div class="row"><button id="play">&#9654; Play</button>
+    <select id="rate"><option value="0.1">0.1x</option><option value="0.25" selected>0.25x</option><option value="0.5">0.5x</option><option value="1">1x</option></select>
+    <span id="clock" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
+    <div class="row"><input type="range" id="scrub" min="0" max="1000" value="0"></div>
+    <div class="row" style="font-size:11px;opacity:.7">drag = rotate &middot; wheel = zoom &middot; right-drag = pan</div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const D = {"version": 1, "fps": 30.263217191448646, "camera": {"fx": 1323.782459469833, "size": [1920, 1080], "rvec": [1.341065903891113, -1.2475079291328757, 1.143365929942058], "tvec": [0.08445671051145393, 0.8045229493173767, 2.359091487913097], "center": [-2.249583542303327, 0.016739046629353143, 1.0764740827296908]}, "t": [1.0, 1.004167, 1.008333, 1.0125, 1.016667, 1.020833, 1.025, 1.029167, 1.033333, 1.0375, 1.041667, 1.045833, 1.05, 1.054167, 1.058333, 1.0625, 1.066667, 1.070833, 1.075, 1.079167, 1.083333, 1.0875, 1.091667, 1.095833, 1.1, 1.104167, 1.108333, 1.1125, 1.116667, 1.120833, 1.125, 1.129167, 1.133333, 1.1375, 1.141667, 1.145833, 1.15, 1.154167, 1.158333, 1.1625, 1.166667, 1.170833, 1.175, 1.179167, 1.183333, 1.1875, 1.191667, 1.195833, 1.2, 1.204167, 1.208333, 1.2125, 1.216667, 1.220833, 1.225, 1.229167, 1.233333, 1.2375, 1.241667, 1.245833, 1.25, 1.254167, 1.258333, 1.2625, 1.266667, 1.270833, 1.275, 1.279167, 1.283333, 1.2875, 1.291667, 1.295833, 1.3, 1.304167, 1.308333, 1.3125, 1.316667, 1.320833, 1.325, 1.329167, 1.333333, 1.3375, 1.341667, 1.345833, 1.35, 1.354167, 1.358333, 1.3625, 1.366667, 1.370833, 1.375, 1.379167, 1.383333, 1.3875, 1.391667, 1.395833, 1.4, 1.404167, 1.407503, 1.407503, 1.408333, 1.4125, 1.416667, 1.420833, 1.425, 1.429167, 1.433333, 1.4375, 1.441667, 1.445833, 1.45, 1.454167, 1.458333, 1.4625, 1.466667, 1.467], "x": [1.2267, 1.3521, 1.4774, 1.6026, 1.7277, 1.8527, 1.9776, 2.1024, 2.2271, 2.3517, 2.4762, 2.6006, 2.7249, 2.8491, 2.9732, 3.0972, 3.2211, 3.3448, 3.4685, 3.5921, 3.7156, 3.839, 3.9623, 4.0855, 4.2086, 4.3316, 4.4545, 4.5773, 4.7, 4.8226, 4.9451, 5.0675, 5.1898, 5.312, 5.4341, 5.5562, 5.6781, 5.7999, 5.9216, 6.0433, 6.1648, 6.2862, 6.4076, 6.5288, 6.6499, 6.771, 6.8919, 7.0128, 7.1336, 7.2542, 7.3748, 7.4953, 7.6156, 7.7359, 7.8561, 7.9762, 8.0962, 8.2161, 8.3359, 8.4556, 8.5753, 8.6948, 8.8142, 8.9336, 9.0528, 9.172, 9.291, 9.41, 9.5289, 9.6476, 9.7663, 9.8849, 10.0034, 10.1218, 10.2401, 10.3584, 10.4765, 10.5945, 10.7125, 10.8304, 10.9481, 11.0658, 11.1834, 11.3009, 11.4183, 11.5356, 11.6528, 11.7699, 11.887, 12.0039, 12.1208, 12.2375, 12.3542, 12.4708, 12.5873, 12.7037, 12.82, 12.9362, 13.0292, 13.0292, 13.0485, 13.1454, 13.2422, 13.339, 13.4357, 13.5323, 13.6289, 13.7254, 13.8218, 13.9182, 14.0145, 14.1108, 14.207, 14.3031, 14.3992, 14.4069], "y": [0.5639, 0.5625, 0.5611, 0.5597, 0.5584, 0.557, 0.5556, 0.5542, 0.5529, 0.5515, 0.5501, 0.5487, 0.5474, 0.546, 0.5446, 0.5433, 0.5419, 0.5405, 0.5392, 0.5378, 0.5364, 0.5351, 0.5337, 0.5324, 0.531, 0.5296, 0.5283, 0.5269, 0.5256, 0.5242, 0.5229, 0.5215, 0.5202, 0.5188, 0.5175, 0.5161, 0.5148, 0.5135, 0.5121, 0.5108, 0.5094, 0.5081, 0.5068, 0.5054, 0.5041, 0.5027, 0.5014, 0.5001, 0.4988, 0.4974, 0.4961, 0.4948, 0.4934, 0.4921, 0.4908, 0.4895, 0.4881, 0.4868, 0.4855, 0.4842, 0.4829, 0.4815, 0.4802, 0.4789, 0.4776, 0.4763, 0.475, 0.4736, 0.4723, 0.471, 0.4697, 0.4684, 0.4671, 0.4658, 0.4645, 0.4632, 0.4619, 0.4606, 0.4593, 0.458, 0.4567, 0.4554, 0.4541, 0.4528, 0.4515, 0.4502, 0.4489, 0.4476, 0.4463, 0.445, 0.4438, 0.4425, 0.4412, 0.4399, 0.4386, 0.4373, 0.436, 0.4348, 0.4337, 0.4337, 0.4335, 0.4325, 0.4314, 0.4303, 0.4293, 0.4282, 0.4271, 0.4261, 0.425, 0.4239, 0.4229, 0.4218, 0.4208, 0.4197, 0.4186, 0.4185], "z": [1.6141, 1.6053, 1.5963, 1.5872, 1.5779, 1.5685, 1.5589, 1.5491, 1.5391, 1.529, 1.5188, 1.5084, 1.4978, 1.487, 1.4761, 1.465, 1.4538, 1.4424, 1.4309, 1.4191, 1.4073, 1.3952, 1.383, 1.3707, 1.3581, 1.3455, 1.3326, 1.3196, 1.3065, 1.2932, 1.2797, 1.266, 1.2522, 1.2383, 1.2242, 1.2099, 1.1955, 1.1809, 1.1661, 1.1512, 1.1361, 1.1209, 1.1055, 1.09, 1.0743, 1.0584, 1.0424, 1.0262, 1.0099, 0.9934, 0.9768, 0.96, 0.943, 0.9259, 0.9086, 0.8912, 0.8736, 0.8559, 0.838, 0.8199, 0.8017, 0.7833, 0.7648, 0.7461, 0.7273, 0.7083, 0.6892, 0.6699, 0.6504, 0.6308, 0.6111, 0.5911, 0.5711, 0.5508, 0.5304, 0.5099, 0.4892, 0.4684, 0.4474, 0.4262, 0.4049, 0.3835, 0.3618, 0.3401, 0.3181, 0.2961, 0.2738, 0.2515, 0.2289, 0.2062, 0.1834, 0.1604, 0.1373, 0.114, 0.0905, 0.0669, 0.0432, 0.0193, 0.0, 0.0, 0.0033, 0.0197, 0.036, 0.0521, 0.068, 0.0837, 0.0992, 0.1146, 0.1298, 0.1448, 0.1596, 0.1742, 0.1887, 0.203, 0.2171, 0.2182], "ib": 98, "t_bounce": 1.4075026755461661, "events_in": {"release": 1.0, "bounce": 1.333, "impact": 1.467}, "metrics": {"release": {"t": 1.0, "pos": [1.2266598047640251, 0.5638850385579205, 1.614110592808257], "speed_kmh": 108.66866633768572}, "bounce": {"t": 1.4075026755461661, "pos": [13.029204674585653, 0.4337392731563754, 0.0], "speed_before_kmh": 102.46208606762205, "speed_after_kmh": 84.9581670003785, "angle_before_deg": 11.726627237262434, "angle_after_deg": 9.700828548147976, "distance_from_batter_stumps_m": 2.970795325414347, "distance_from_bowler_stumps_m": 13.029204674585653, "line_y_m": 0.4337392731563754}, "impact": {"t": 1.467, "pos": [14.40687870518904, 0.4185477663106642, 0.21820774231679277], "speed_kmh": 83.86419617089999}, "at_stumps_projected": {"y_m": 0.40098053885442103, "height_m": 0.4268040876310038, "would_hit_stumps": false, "note": "straight-line physics projection to the stump line; ignores bat/pad and swing/spin after the bounce"}, "theta": {"x0": 1.2266598047640251, "y0": 0.5638850385579205, "z0": 1.614110592808257, "vx": 30.11129110414941, "vy": -0.3320349188418277, "vz": -2.09256765818808, "restitution_e": 0.6874434871948647, "horizontal_retention_mu": 0.8347327944050388, "drag_k": 0.0065}}, "fit": {"cost": 32.642366962612115, "n_det": 16, "n_outliers": 2, "rms_px": 3.72926450722171, "median_px": 2.575336484266689, "per_det_px": [4.5135162839183, 7.454174273204996, 1.479476459262857, 1.1837340632268056, 2.4418287444249556, 3.129814630318337, 1.6740852216029405, 1.7427647954686802, 1.0893034475211265, 7.96233577522775, 3.9798504291777803, 1.0658959974236901, 2.708844224108423, 2.163460422011177, 9.202568690200538, 11.392698384915446], "t_bounce_fit": 1.4075026755461661, "warnings": ["fitted bounce time differs from the event time by 75 ms"]}, "pitch": {"len": 16.0, "stump_h": 0.711, "stump_dy": 0.09605, "popping": 1.22, "return_half": 1.31, "half_w": 1.525, "ball_r": 0.036}, "meta": {}};
+const w2t = (x,y,z) => new THREE.Vector3(x, z, -y);          // world (x fwd, y left, z up) -> three (x, y up, z)
+const N = D.t.length, PIT = D.pitch;
+const PTS = D.t.map((_,i)=>w2t(D.x[i],D.y[i],D.z[i]));
+const IB = D.ib >= 0 ? D.ib : N-1;
+const T0 = D.t[0], T1 = D.t[N-1], TB = D.t[IB];
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x9ec7ee); scene.fog = new THREE.Fog(0x9ec7ee, 60, 220);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x4a6a3a, 0.55));
+const sun = new THREE.DirectionalLight(0xffffff, 0.45); sun.position.set(-15, 30, 10); scene.add(sun);
+
+// ground, pitch strip, creases
+const grass = new THREE.Mesh(new THREE.PlaneGeometry(400,400), new THREE.MeshStandardMaterial({color:0x2f6f35, roughness:1}));
+grass.rotation.x = -Math.PI/2; grass.position.set(PIT.len/2, -0.002, 0); scene.add(grass);
+const strip = new THREE.Mesh(new THREE.PlaneGeometry(PIT.len+3.0, PIT.half_w*2), new THREE.MeshStandardMaterial({color:0xa8946a, roughness:1}));
+strip.rotation.x = -Math.PI/2; strip.position.set(PIT.len/2, 0.001, 0); scene.add(strip);
+function line(x0,z0,x1,z1,w){ const L=Math.hypot(x1-x0,z1-z0);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(L,w), new THREE.MeshBasicMaterial({color:0xffffff}));
+  m.rotation.x=-Math.PI/2; m.rotation.z=-Math.atan2(z1-z0,x1-x0); m.position.set((x0+x1)/2,0.004,(z0+z1)/2); scene.add(m); }
+[0, PIT.len].forEach(X=>line(X,-PIT.return_half,X,PIT.return_half,0.05));                        // bowling creases (through the stumps)
+[PIT.popping, PIT.len-PIT.popping].forEach(X=>line(X,-PIT.return_half,X,PIT.return_half,0.05));  // popping creases
+[ -PIT.return_half, PIT.return_half ].forEach(Z=>{ line(0,Z,PIT.popping+0.0,Z,0.05); line(PIT.len-PIT.popping,Z,PIT.len,Z,0.05); });
+
+// stumps
+function wicket(X){ const g=new THREE.Group();
+  [-1,0,1].forEach(k=>{ const s=new THREE.Mesh(new THREE.CylinderGeometry(0.0175,0.0175,PIT.stump_h,14), new THREE.MeshStandardMaterial({color:0xf2b134, roughness:.5}));
+    s.position.set(X, PIT.stump_h/2, k*PIT.stump_dy); g.add(s); });
+  [-0.5,0.5].forEach(k=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,PIT.stump_dy*0.95,8), new THREE.MeshStandardMaterial({color:0xfff2c2}));
+    b.rotation.x=Math.PI/2; b.position.set(X, PIT.stump_h+0.01, k*PIT.stump_dy); g.add(b); });
+  scene.add(g); }
+wicket(0); wicket(PIT.len);
+
+const markers = [];
+// camera marker
+if (D.camera && D.camera.center){ const c=D.camera.center; const cm=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.07,0.05), new THREE.MeshStandardMaterial({color:0x555555}));
+  cm.position.copy(w2t(c[0],c[1],c[2])); scene.add(cm);
+  const el=document.createElement('div'); el.className='lab'; el.textContent='camera'; document.getElementById('labels').appendChild(el); markers.push({pos:cm.position,el}); }
+
+// ball + markers
+const ball = new THREE.Mesh(new THREE.SphereGeometry(PIT.ball_r*1.6,24,16), new THREE.MeshStandardMaterial({color:0xc1121f, roughness:.4}));
+scene.add(ball);
+const M = D.metrics;
+function marker(key,color,text){ if(!M[key]) return; const p=M[key].pos;
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.045,16,12), new THREE.MeshBasicMaterial({color})); m.position.copy(w2t(p[0],p[1],p[2])); scene.add(m);
+  const el=document.createElement('div'); el.className='lab'; el.textContent=text; document.getElementById('labels').appendChild(el); markers.push({pos:m.position,el}); }
+marker('release',0x2ecc71,'release'); marker('bounce',0xf1c40f,'bounce'); marker('impact',0xe74c3c,'impact');
+
+// trail (rebuilt from the samples up to "now" so it always ends exactly at the ball)
+const trail = new THREE.Group(); scene.add(trail);
+function clearTrail(){ while(trail.children.length){ const o=trail.children.pop(); o.geometry.dispose(); o.material.dispose(); } }
+function tube(points,color){
+  const pts=[points[0]]; for(let i=1;i<points.length;i++){ if(points[i].distanceTo(pts[pts.length-1])>1e-3) pts.push(points[i]); }
+  if(pts.length<2) return;
+  const curve=new THREE.CatmullRomCurve3(pts,false,'centripetal');
+  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,pts.length*2),0.028,10,false), new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:0.35,roughness:.35,metalness:.05}));
+  trail.add(mesh);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.028,10,8), mesh.material.clone()); cap.position.copy(pts[0]); trail.add(cap); }
+function posAt(t){ t=Math.min(Math.max(t,T0),T1); let i=0; while(i<N-2 && D.t[i+1]<t) i++;
+  const a=D.t[i], b=D.t[i+1], f=b>a?(t-a)/(b-a):0; return PTS[i].clone().lerp(PTS[i+1],Math.min(Math.max(f,0),1)); }
+function buildTrail(t){ clearTrail();
+  const grow=document.getElementById('grow').checked; const tt=grow?t:T1;
+  const pre=[], post=[];
+  for(let i=0;i<N;i++){ if(D.t[i]>tt) break; (i<=IB?pre:post).push(PTS[i]); }
+  const cur=posAt(tt);
+  if(tt<=TB){ pre.push(cur); } else { if(!post.length) post.push(PTS[IB]); post.push(cur); if(tt<T1+1) {} }
+  if(pre.length>1) tube(pre,0x2447b8);
+  if(post.length>1) tube(post,0x7a97e6); }
+
+// camera controls (orbit / zoom / pan)
+const target=new THREE.Vector3(PIT.len*0.45,0.8,0); let yaw=0,pitch=0.3,dist=20;
+function setView(camWorld,tgtWorld,fov){ camera.fov=fov||50; camera.updateProjectionMatrix(); const c=w2t(...camWorld), t=w2t(...tgtWorld); target.copy(t); const d=c.clone().sub(t);
+  dist=d.length(); pitch=Math.asin(d.y/dist); yaw=Math.atan2(d.z,d.x); applyCam(); }
+function applyCam(){ camera.position.set(target.x+dist*Math.cos(pitch)*Math.cos(yaw), target.y+dist*Math.sin(pitch), target.z+dist*Math.cos(pitch)*Math.sin(yaw)); camera.lookAt(target); }
+const camC = D.camera && D.camera.center ? D.camera.center : [-3,0,1.4];
+const VIEWS = {
+  'Camera view':   ()=>{ const f=(D.camera&&D.camera.forward)||[1,0,0]; setView(camC,[camC[0]+f[0]*15,camC[1]+f[1]*15,camC[2]+f[2]*15], (D.camera&&D.camera.vfov_deg)||50); },
+  'Bowler end':    ()=>setView([-4.5,0.0,1.7],[PIT.len*0.65,0,0.5]),
+  'Side':          ()=>setView([PIT.len*0.5,-15,1.3],[PIT.len*0.5,0,1.0]),
+  'Top':           ()=>setView([PIT.len*0.5,-0.5,15.5],[PIT.len*0.5,0,0]),   // bowler at the left, left side of the pitch at the top
+  'Batter end':    ()=>setView([PIT.len+4.5,0.4,1.7],[PIT.len*0.3,0,0.5]),
+  'Follow ball':   ()=>{ follow=true; }
+};
+let follow=false;
+const vb=document.getElementById('views');
+Object.keys(VIEWS).forEach(k=>{ const b=document.createElement('button'); b.textContent=k; b.onclick=()=>{ follow=false; VIEWS[k](); }; vb.appendChild(b); });
+let drag=null;
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY,pan:(e.button===2||e.shiftKey)}; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerup',()=>drag=null);
+canvas.addEventListener('pointermove',e=>{ if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
+  if(drag.pan){ const right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0), up=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+    target.addScaledVector(right,-dx*dist*0.0016).addScaledVector(up,dy*dist*0.0016); }
+  else { yaw-=dx*0.006; pitch=Math.min(Math.max(pitch+dy*0.006,-0.05),1.55); }
+  applyCam(); });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); dist=Math.min(Math.max(dist*Math.exp(e.deltaY*0.001),1.5),150); applyCam(); },{passive:false});
+
+// stats panel
+const km=v=>v.toFixed(1);
+let rows=[['release speed', km(M.release.speed_kmh)+' km/h'],['release height', M.release.pos[2].toFixed(2)+' m']];
+if(M.bounce){ rows.push(['bounce from batter stumps', M.bounce.distance_from_batter_stumps_m.toFixed(2)+' m'],['bounce line (Y)', (M.bounce.line_y_m>=0?'+':'')+M.bounce.line_y_m.toFixed(2)+' m'],
+  ['speed before / after bounce', km(M.bounce.speed_before_kmh)+' / '+km(M.bounce.speed_after_kmh)],['bounce angle in / out', M.bounce.angle_before_deg.toFixed(1)+'\u00b0 / '+M.bounce.angle_after_deg.toFixed(1)+'\u00b0']); }
+rows.push(['impact speed', km(M.impact.speed_kmh)+' km/h']);
+if(M.at_stumps_projected) rows.push(['projected at stumps', (M.at_stumps_projected.would_hit_stumps?'HITTING':'missing')+' (h '+M.at_stumps_projected.height_m.toFixed(2)+' m)']);
+rows.push(['fit error', D.fit.rms_px.toFixed(1)+' px rms']);
+document.getElementById('stats').innerHTML=rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
+
+// ===== crease planes (light red, transparent) + release / impact / crossing heights =====
+(function(){
+  const XB = PIT.popping, XT = PIT.len - PIT.popping;                  // bowling / batting popping crease (world X)
+  const WID = PIT.half_w*2, HGT = Math.max(3.0, Math.max.apply(null, D.z) + 0.6);
+  const RED = 0xff5a5a, RED2 = 0xff2b2b;
+  const group = new THREE.Group(); scene.add(group);
+  const labels = [];
+
+  function label(p3, html, color, dy){
+    const el = document.createElement('div'); el.className = 'lab'; el.innerHTML = html;
+    el.style.borderLeft = '3px solid ' + color; el.style.textAlign = 'left';
+    document.getElementById('labels').appendChild(el); labels.push({pos: p3.clone(), el, dy: dy || 0});
+  }
+  function dot(p3, color, r){
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), new THREE.MeshBasicMaterial({color, depthTest:false}));
+    m.position.copy(p3); m.renderOrder = 10; group.add(m);
+  }
+  function dropLine(p3){
+    const g = new THREE.BufferGeometry().setFromPoints([p3, new THREE.Vector3(p3.x, 0.004, p3.z)]);
+    group.add(new THREE.Line(g, new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.9})));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.085, 24), new THREE.MeshBasicMaterial({color:0xffffff, side:THREE.DoubleSide, transparent:true, opacity:0.95}));
+    ring.rotation.x = -Math.PI/2; ring.position.set(p3.x, 0.008, p3.z); group.add(ring);
+  }
+  function dashed(a, b, color){
+    const g = new THREE.BufferGeometry().setFromPoints([a, b]);
+    const l = new THREE.Line(g, new THREE.LineDashedMaterial({color, dashSize:0.12, gapSize:0.08}));
+    l.computeLineDistances(); group.add(l);
+  }
+
+  // ---- the two planes
+  const planeMat = new THREE.MeshBasicMaterial({color:RED, transparent:true, opacity:0.22, side:THREE.DoubleSide, depthWrite:false});
+  function crease(X, name){
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(WID, HGT), planeMat);
+    pl.rotation.y = Math.PI/2; pl.position.set(X, HGT/2, 0); group.add(pl);          // spans the pitch width and up in the air
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(pl.geometry), new THREE.LineBasicMaterial({color:RED2}));
+    edges.rotation.copy(pl.rotation); edges.position.copy(pl.position); group.add(edges);
+    const band = new THREE.Mesh(new THREE.PlaneGeometry(0.12, WID), new THREE.MeshBasicMaterial({color:RED2, transparent:true, opacity:0.8, depthWrite:false}));
+    band.rotation.x = -Math.PI/2; band.position.set(X, 0.006, 0); group.add(band);   // red strip on the ground = the crease line
+    label(new THREE.Vector3(X, HGT, 0), name, '#ff5a5a', 0);
+  }
+  crease(XB, 'bowling crease plane');
+  crease(XT, 'batting crease plane');
+
+  // ---- where the path passes through a plane (null if it never does)
+  function crossing(X){
+    for(let i = 0; i < N-1; i++){
+      const a = D.x[i], b = D.x[i+1];
+      if(a !== b && (a-X)*(b-X) <= 0){
+        const f = (X-a)/(b-a);
+        return {y: D.y[i]+f*(D.y[i+1]-D.y[i]), z: D.z[i]+f*(D.z[i+1]-D.z[i])};
+      }
+    }
+    return null;
+  }
+
+  // ---- release on the bowling plane, impact on the batting plane
+  function pointOnPlane(key, X, color, hex, name){
+    if(!M[key]) return;
+    const p = M[key].pos, real = w2t(p[0], p[1], p[2]), onPlane = w2t(X, p[1], p[2]);
+    dot(onPlane, hex, 0.07); dropLine(onPlane);
+    let extra = '';
+    if(Math.abs(p[0]-X) > 0.05){
+      dashed(real, onPlane, hex);                                                      // joins the real point to its spot on the plane
+      extra = ' <span style="opacity:.7">(real X=' + p[0].toFixed(1) + ' m)</span>';
+    }
+    label(onPlane, name + ' &middot; <b>' + p[2].toFixed(2) + ' m</b>' + extra, color, 0);
+  }
+  pointOnPlane('release', XB, '#2ecc71', 0x2ecc71, 'release');
+  pointOnPlane('impact',  XT, '#ff6b6b', 0xe74c3c, 'impact');
+
+  // ---- where the ball really passes through each plane
+  [[XB, 'bowling'], [XT, 'batting']].forEach(function(pair){
+    const X = pair[0], nm = pair[1], c = crossing(X);
+    if(!c) return;
+    const key = (X === XB) ? 'release' : 'impact';
+    if(M[key] && Math.abs(M[key].pos[0]-X) <= 0.05) return;                         // same spot as the release/impact marker
+    const p = w2t(X, c.y, c.z);
+    dot(p, 0xffffff, 0.055); dropLine(p);
+    label(p, 'passes ' + nm + ' crease &middot; <b>' + c.z.toFixed(2) + ' m</b>', '#ffffff', 40);
+  });
+
+  // ---- on/off switch + label placement (own loop, so it can hide the labels too)
+  const row = document.createElement('div'); row.className = 'row';
+  row.innerHTML = '<label><input type="checkbox" id="planes" checked> crease planes + heights</label>';
+  document.getElementById('grow').closest('.card').appendChild(row);
+  document.getElementById('planes').onchange = function(e){ group.visible = e.target.checked; };
+  function placeLabels(){
+    const on = document.getElementById('planes').checked;
+    labels.forEach(function(m){
+      const v = m.pos.clone().project(camera);
+      m.el.style.display = (on && v.z < 1) ? 'block' : 'none';
+      m.el.style.left = ((v.x*0.5+0.5)*innerWidth) + 'px';
+      m.el.style.top  = ((-v.y*0.5+0.5)*innerHeight + m.dy) + 'px';
+    });
+    requestAnimationFrame(placeLabels);
+  }
+  requestAnimationFrame(placeLabels);
+})();
+
+// playback
+let tNow=T0, playing=false, last=performance.now(), lastIdx=-1;
+const scrub=document.getElementById('scrub'), clock=document.getElementById('clock');
+document.getElementById('play').onclick=()=>{ playing=!playing; if(playing&&tNow>=T1-1e-3) tNow=T0; document.getElementById('play').innerHTML=playing?'&#10074;&#10074; Pause':'&#9654; Play'; };
+scrub.oninput=()=>{ tNow=T0+(T1-T0)*scrub.value/1000; };
+document.getElementById('grow').onchange=()=>{ lastIdx=-1; };
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize(); VIEWS['Camera view']();
+tNow=T1;          // start showing the full track; press Play to animate
+
+function frame(now){
+  const dt=(now-last)/1000; last=now;
+  if(playing){ tNow+=dt*parseFloat(document.getElementById('rate').value); if(tNow>=T1){ tNow=T1; playing=false; document.getElementById('play').innerHTML='&#9654; Play'; } }
+  scrub.value=Math.round(1000*(tNow-T0)/(T1-T0)); clock.textContent=((tNow-T0)*1000).toFixed(0)+' ms';
+  const idx=Math.floor((tNow-T0)*240)+(document.getElementById('grow').checked?0:-1000000);
+  if(idx!==lastIdx){ buildTrail(tNow); lastIdx=idx; }
+  ball.position.copy(posAt(tNow));
+  if(follow){ target.lerp(ball.position,0.15); dist=Math.max(dist,6); applyCam(); }
+  renderer.render(scene,camera);
+  markers.forEach(m=>{ const v=m.pos.clone().project(camera); const vis=v.z<1; m.el.style.display=vis?'block':'none';
+    m.el.style.left=((v.x*0.5+0.5)*innerWidth)+'px'; m.el.style.top=((-v.y*0.5+0.5)*innerHeight)+'px'; });
+  requestAnimationFrame(frame);
+}
+buildTrail(T1); requestAnimationFrame(frame);
+window.__ready = true;
+</script></body></html>

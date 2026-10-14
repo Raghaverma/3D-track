@@ -1,0 +1,52 @@
+{
+ "release": {
+  "t": 0.3333333333333333,
+  "pos": [
+   0.6,
+   0.85,
+   2.1
+  ],
+  "speed_kmh": 94.00481689785902
+ },
+ "bounce": {
+  "t": 0.8325876886019167,
+  "pos": [
+   13.056131944461297,
+   0.13137700320415657,
+   0.0
+  ],
+  "speed_before_kmh": 89.41334056631982,
+  "speed_after_kmh": 68.5487267613403,
+  "angle_before_deg": 15.058540027131153,
+  "angle_after_deg": 10.741979778659415,
+  "distance_from_batter_stumps_m": 7.063868055538704,
+  "distance_from_bowler_stumps_m": 13.056131944461297,
+  "line_y_m": 0.13137700320415657
+ },
+ "impact": {
+  "t": 1.1708333333333305,
+  "pos": [
+   19.245795811712664,
+   -0.2257189891372682,
+   0.622523372972949
+  ],
+  "speed_kmh": 64.67320320922893
+ },
+ "at_stumps_projected": {
+  "y_m": -0.27615384615384514,
+  "height_m": 0.618389638194688,
+  "would_hit_stumps": false,
+  "note": "straight-line physics projection to the stump line; ignores bat/pad and swing/spin after the bounce"
+ },
+ "theta": {
+  "x0": 0.6,
+  "y0": 0.85,
+  "z0": 2.1,
+  "vx": 26.0,
+  "vy": -1.5,
+  "vz": -1.9,
+  "restitution_e": 0.55,
+  "horizontal_retention_mu": 0.78,
+  "drag_k": 0.0065
+ }
+}

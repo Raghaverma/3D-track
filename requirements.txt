@@ -1,0 +1,21 @@
+# 3D ball track -- Python dependencies (tested on Python 3.14, macOS arm64)
+#   python3 -m venv myenv && source myenv/bin/activate
+#   pip install -r requirements.txt
+# Also needs a system ffmpeg:  brew install ffmpeg
+#
+# NOTE: do NOT pin numpy<2 -- scipy 1.18 needs numpy>=2, and the inference
+# path of the models works fine with numpy 2.
+
+# --- ball3d.py (calibrate / fit / overlay / viewer / plot / demo) ---
+numpy>=2
+scipy>=1.18
+opencv-python>=5.0
+pillow>=12.0
+matplotlib>=3.10        # only used by `ball3d.py plot`
+
+# --- app1.py + cricket_infer.py + track_ball.py (the two ML models) ---
+torch>=2.0
+torchvision
+timm>=1.0
+tqdm
+tabulate

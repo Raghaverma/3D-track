@@ -1,0 +1,22 @@
+[
+ {
+  "delivery": 1,
+  "score": 0.9,
+  "complete": true,
+  "release": {
+   "time_seconds": 0.35,
+   "frame": 20,
+   "src_frame": 20
+  },
+  "pitching": {
+   "time_seconds": 0.8492543552685834,
+   "frame": 50,
+   "src_frame": 50
+  },
+  "impact": {
+   "time_seconds": 1.1708333333333305,
+   "frame": 70,
+   "src_frame": 70
+  }
+ }
+]

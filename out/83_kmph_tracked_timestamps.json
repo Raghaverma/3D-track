@@ -1,0 +1,44 @@
+[
+  {
+    "delivery": 0,
+    "score": 0.7054,
+    "complete": true,
+    "release": {
+      "time_seconds": 0.667,
+      "frame": 20,
+      "src_frame": 20,
+      "confidence": 0.9373,
+      "ball_xy": [
+        761.8992805480957,
+        97.66988039016724
+      ]
+    },
+    "pitching": {
+      "time_seconds": 0.967,
+      "frame": 29,
+      "src_frame": 29,
+      "confidence": 0.8065,
+      "ball_xy": [
+        960.5410766601562,
+        428.5888481140137
+      ]
+    },
+    "impact": {
+      "time_seconds": 1.133,
+      "frame": 34,
+      "src_frame": 34,
+      "confidence": 0.3723,
+      "ball_xy": [
+        982.6590728759766,
+        468.00378799438477
+      ]
+    },
+    "speed": {
+      "distance_m": 16,
+      "time_of_flight_s": 0.46599999999999997,
+      "speed_mps": 34.33476394849786,
+      "speed_kmh": 123.6051502145923,
+      "speed_mph": 76.80467955708154
+    }
+  }
+]

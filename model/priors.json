@@ -1,0 +1,28 @@
+{
+  "fps": 30.0,
+  "classes": [
+    "release",
+    "pitching",
+    "impact"
+  ],
+  "gaps_frames": {
+    "release_to_pitching": {
+      "n": 1528,
+      "min": 1,
+      "p05": 2,
+      "median": 12.0,
+      "p95": 22,
+      "max": 48,
+      "mean": 12.45
+    },
+    "pitching_to_impact": {
+      "n": 1515,
+      "min": 1,
+      "p05": 1,
+      "median": 5,
+      "p95": 11,
+      "max": 24,
+      "mean": 5.55
+    }
+  }
+}

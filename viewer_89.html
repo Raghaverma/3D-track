@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ball track - 3D</title>
+<style>
+html,body{margin:0;height:100%;background:#0b1220;color:#e8eefc;font-family:-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+#ui{position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:8px;width:300px;max-width:calc(100vw - 24px)}
+.card{background:rgba(10,18,36,.80);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5}
+.card b{font-size:14px}
+button,select{background:#1d2c52;color:#e8eefc;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:5px 9px;font-size:12px;cursor:pointer}
+button:hover{background:#2a3f78}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
+input[type=range]{flex:1;min-width:120px}
+table{border-collapse:collapse;width:100%}td{padding:1px 0}td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.lab{position:absolute;transform:translate(-50%,-135%);font-size:11px;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.65);pointer-events:none;white-space:nowrap}
+</style></head><body>
+<canvas id="c"></canvas><div id="labels"></div>
+<div id="ui">
+  <div class="card"><b>Ball track &middot; 3D</b><table id="stats"></table></div>
+  <div class="card"><div class="row" id="views"></div>
+    <div class="row"><label><input type="checkbox" id="grow" checked> trail grows with the ball</label></div></div>
+  <div class="card"><div class="row"><button id="play">&#9654; Play</button>
+    <select id="rate"><option value="0.1">0.1x</option><option value="0.25" selected>0.25x</option><option value="0.5">0.5x</option><option value="1">1x</option></select>
+    <span id="clock" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
+    <div class="row"><input type="range" id="scrub" min="0" max="1000" value="0"></div>
+    <div class="row" style="font-size:11px;opacity:.7">drag = rotate &middot; wheel = zoom &middot; right-drag = pan</div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const D = {"version": 1, "fps": 30.26227303295225, "camera": {"fx": 1323.782459469833, "size": [1920, 1080], "rvec": [1.3428857542206214, -1.2469018657938626, 1.144517355219695], "tvec": [0.0865613191218461, 0.8143955846036217, 2.372731186817317], "center": [-2.2615732394231194, 0.020452575813280457, 1.088785786990868]}, "t": [0.767, 0.771167, 0.775333, 0.7795, 0.783667, 0.787833, 0.792, 0.796167, 0.800333, 0.8045, 0.808667, 0.812833, 0.817, 0.821167, 0.825333, 0.8295, 0.833667, 0.837833, 0.842, 0.846167, 0.850333, 0.8545, 0.858667, 0.862833, 0.867, 0.871167, 0.875333, 0.8795, 0.883667, 0.887833, 0.892, 0.896167, 0.900333, 0.9045, 0.908667, 0.912833, 0.917, 0.921167, 0.925333, 0.9295, 0.933667, 0.937833, 0.942, 0.946167, 0.950333, 0.9545, 0.958667, 0.962833, 0.967, 0.971167, 0.975333, 0.9795, 0.983667, 0.987833, 0.992, 0.996167, 1.000333, 1.0045, 1.008667, 1.012833, 1.017, 1.021167, 1.025333, 1.0295, 1.033667, 1.037833, 1.042, 1.046167, 1.050333, 1.0545, 1.058667, 1.062833, 1.067, 1.071167, 1.075333, 1.0795, 1.083667, 1.087833, 1.092, 1.096167, 1.100333, 1.1045, 1.108667, 1.112833, 1.117, 1.121167, 1.125333, 1.1295, 1.133667, 1.137833, 1.142, 1.146167, 1.150333, 1.1545, 1.158667, 1.162833, 1.167, 1.171167, 1.175333, 1.1795, 1.183667, 1.187833, 1.189598, 1.189598, 1.192, 1.196167, 1.200333, 1.2045, 1.208667, 1.212833, 1.217, 1.221167, 1.225333, 1.2295, 1.233], "x": [1.2465, 1.3728, 1.499, 1.625, 1.751, 1.8768, 2.0026, 2.1282, 2.2537, 2.3792, 2.5045, 2.6298, 2.7549, 2.8799, 3.0048, 3.1297, 3.2544, 3.379, 3.5035, 3.628, 3.7523, 3.8765, 4.0006, 4.1246, 4.2486, 4.3724, 4.4961, 4.6197, 4.7432, 4.8666, 4.99, 5.1132, 5.2363, 5.3593, 5.4823, 5.6051, 5.7278, 5.8504, 5.973, 6.0954, 6.2177, 6.34, 6.4621, 6.5841, 6.7061, 6.8279, 6.9497, 7.0713, 7.1929, 7.3143, 7.4357, 7.557, 7.6781, 7.7992, 7.9202, 8.0411, 8.1618, 8.2825, 8.4031, 8.5236, 8.644, 8.7643, 8.8845, 9.0047, 9.1247, 9.2446, 9.3644, 9.4842, 9.6038, 9.7234, 9.8428, 9.9622, 10.0815, 10.2006, 10.3197, 10.4387, 10.5576, 10.6764, 10.7951, 10.9137, 11.0323, 11.1507, 11.269, 11.3873, 11.5054, 11.6235, 11.7415, 11.8594, 11.9771, 12.0948, 12.2124, 12.33, 12.4474, 12.5647, 12.6819, 12.7991, 12.9162, 13.0331, 13.15, 13.2668, 13.3835, 13.5001, 13.5494, 13.5494, 13.6064, 13.7052, 13.8039, 13.9026, 14.0011, 14.0997, 14.1981, 14.2965, 14.3948, 14.4931, 14.5756], "y": [0.4134, 0.4114, 0.4095, 0.4075, 0.4055, 0.4036, 0.4016, 0.3996, 0.3977, 0.3957, 0.3937, 0.3918, 0.3898, 0.3879, 0.3859, 0.3839, 0.382, 0.38, 0.3781, 0.3761, 0.3742, 0.3723, 0.3703, 0.3684, 0.3664, 0.3645, 0.3626, 0.3606, 0.3587, 0.3568, 0.3548, 0.3529, 0.351, 0.349, 0.3471, 0.3452, 0.3433, 0.3414, 0.3394, 0.3375, 0.3356, 0.3337, 0.3318, 0.3299, 0.328, 0.3261, 0.3242, 0.3223, 0.3204, 0.3184, 0.3165, 0.3147, 0.3128, 0.3109, 0.309, 0.3071, 0.3052, 0.3033, 0.3014, 0.2995, 0.2976, 0.2958, 0.2939, 0.292, 0.2901, 0.2882, 0.2864, 0.2845, 0.2826, 0.2807, 0.2789, 0.277, 0.2751, 0.2733, 0.2714, 0.2695, 0.2677, 0.2658, 0.264, 0.2621, 0.2603, 0.2584, 0.2565, 0.2547, 0.2528, 0.251, 0.2492, 0.2473, 0.2455, 0.2436, 0.2418, 0.2399, 0.2381, 0.2363, 0.2344, 0.2326, 0.2308, 0.2289, 0.2271, 0.2253, 0.2235, 0.2216, 0.2209, 0.2209, 0.22, 0.2184, 0.2169, 0.2153, 0.2138, 0.2122, 0.2107, 0.2092, 0.2076, 0.2061, 0.2048], "z": [1.5786, 1.571, 1.5633, 1.5555, 1.5474, 1.5393, 1.5309, 1.5224, 1.5137, 1.5049, 1.4959, 1.4867, 1.4774, 1.4679, 1.4582, 1.4484, 1.4384, 1.4283, 1.418, 1.4075, 1.3969, 1.3861, 1.3751, 1.364, 1.3528, 1.3413, 1.3297, 1.318, 1.3061, 1.294, 1.2817, 1.2693, 1.2568, 1.2441, 1.2312, 1.2181, 1.2049, 1.1916, 1.1781, 1.1644, 1.1506, 1.1366, 1.1224, 1.1081, 1.0936, 1.079, 1.0642, 1.0493, 1.0341, 1.0189, 1.0035, 0.9879, 0.9721, 0.9562, 0.9402, 0.924, 0.9076, 0.8911, 0.8744, 0.8576, 0.8406, 0.8234, 0.8061, 0.7886, 0.771, 0.7532, 0.7353, 0.7172, 0.6989, 0.6805, 0.662, 0.6433, 0.6244, 0.6054, 0.5862, 0.5668, 0.5473, 0.5277, 0.5079, 0.4879, 0.4678, 0.4476, 0.4271, 0.4066, 0.3858, 0.365, 0.3439, 0.3227, 0.3014, 0.2799, 0.2582, 0.2364, 0.2145, 0.1923, 0.1701, 0.1477, 0.1251, 0.1024, 0.0795, 0.0565, 0.0333, 0.0099, 0.0, 0.0, 0.0092, 0.0251, 0.0408, 0.0564, 0.0717, 0.0869, 0.1019, 0.1167, 0.1313, 0.1457, 0.1577], "ib": 102, "t_bounce": 1.1895976122120027, "events_in": {"release": 0.767, "bounce": 1.167, "impact": 1.233}, "metrics": {"release": {"t": 0.767, "pos": [1.2465326008823916, 0.41342311131589693, 1.5785544211267466], "speed_kmh": 109.33999124381899}, "bounce": {"t": 1.1895976122120027, "pos": [13.549435309934134, 0.22085635372078896, 0.0], "speed_before_kmh": 102.71042307596873, "speed_after_kmh": 86.53534258979379, "angle_before_deg": 11.389011382395186, "angle_after_deg": 9.239891407205137, "distance_from_batter_stumps_m": 2.4505646900658657, "distance_from_bowler_stumps_m": 13.549435309934134, "line_y_m": 0.22085635372078896}, "impact": {"t": 1.233, "pos": [14.575584742584132, 0.2047949189743298, 0.15772315999941297], "speed_kmh": 85.7212389973369}, "at_stumps_projected": {"y_m": 0.18249977171710852, "height_m": 0.34577658887734564, "would_hit_stumps": false, "note": "straight-line physics projection to the stump line; ignores bat/pad and swing/spin after the bounce"}, "theta": {"x0": 1.2465326008823916, "y0": 0.41342311131589693, "z0": 1.5785544211267466, "vx": 30.315827219054977, "vy": -0.47450757674380495, "vz": -1.7880709026857378, "restitution_e": 0.6850771757066924, "horizontal_retention_mu": 0.8482893338180105, "drag_k": 0.0065}}, "fit": {"cost": 12.019543761784249, "n_det": 16, "n_outliers": 0, "rms_px": 2.602467017602894, "median_px": 1.4917835013519245, "per_det_px": [3.1685762699373043, 5.969350170270742, 1.2392274484784942, 1.4894247526497362, 1.4992460405721375, 1.5371652689385, 1.943197036303129, 1.1379473228070027, 1.4622575675946003, 0.39124324170304914, 0.01968745201916163, 0.40433465999043533, 1.4941422500541128, 0.8060879337395183, 3.6566261299021745, 5.527062041066576], "t_bounce_fit": 1.1895976122120027, "warnings": []}, "pitch": {"len": 16.0, "stump_h": 0.711, "stump_dy": 0.09605, "popping": 1.22, "return_half": 1.31, "half_w": 1.525, "ball_r": 0.036}, "meta": {}};
+const w2t = (x,y,z) => new THREE.Vector3(x, z, -y);          // world (x fwd, y left, z up) -> three (x, y up, z)
+const N = D.t.length, PIT = D.pitch;
+const PTS = D.t.map((_,i)=>w2t(D.x[i],D.y[i],D.z[i]));
+const IB = D.ib >= 0 ? D.ib : N-1;
+const T0 = D.t[0], T1 = D.t[N-1], TB = D.t[IB];
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x9ec7ee); scene.fog = new THREE.Fog(0x9ec7ee, 60, 220);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x4a6a3a, 0.55));
+const sun = new THREE.DirectionalLight(0xffffff, 0.45); sun.position.set(-15, 30, 10); scene.add(sun);
+
+// ground, pitch strip, creases
+const grass = new THREE.Mesh(new THREE.PlaneGeometry(400,400), new THREE.MeshStandardMaterial({color:0x2f6f35, roughness:1}));
+grass.rotation.x = -Math.PI/2; grass.position.set(PIT.len/2, -0.002, 0); scene.add(grass);
+const strip = new THREE.Mesh(new THREE.PlaneGeometry(PIT.len+3.0, PIT.half_w*2), new THREE.MeshStandardMaterial({color:0xa8946a, roughness:1}));
+strip.rotation.x = -Math.PI/2; strip.position.set(PIT.len/2, 0.001, 0); scene.add(strip);
+function line(x0,z0,x1,z1,w){ const L=Math.hypot(x1-x0,z1-z0);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(L,w), new THREE.MeshBasicMaterial({color:0xffffff}));
+  m.rotation.x=-Math.PI/2; m.rotation.z=-Math.atan2(z1-z0,x1-x0); m.position.set((x0+x1)/2,0.004,(z0+z1)/2); scene.add(m); }
+[0, PIT.len].forEach(X=>line(X,-PIT.return_half,X,PIT.return_half,0.05));                        // bowling creases (through the stumps)
+[PIT.popping, PIT.len-PIT.popping].forEach(X=>line(X,-PIT.return_half,X,PIT.return_half,0.05));  // popping creases
+[ -PIT.return_half, PIT.return_half ].forEach(Z=>{ line(0,Z,PIT.popping+0.0,Z,0.05); line(PIT.len-PIT.popping,Z,PIT.len,Z,0.05); });
+
+// stumps
+function wicket(X){ const g=new THREE.Group();
+  [-1,0,1].forEach(k=>{ const s=new THREE.Mesh(new THREE.CylinderGeometry(0.0175,0.0175,PIT.stump_h,14), new THREE.MeshStandardMaterial({color:0xf2b134, roughness:.5}));
+    s.position.set(X, PIT.stump_h/2, k*PIT.stump_dy); g.add(s); });
+  [-0.5,0.5].forEach(k=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,PIT.stump_dy*0.95,8), new THREE.MeshStandardMaterial({color:0xfff2c2}));
+    b.rotation.x=Math.PI/2; b.position.set(X, PIT.stump_h+0.01, k*PIT.stump_dy); g.add(b); });
+  scene.add(g); }
+wicket(0); wicket(PIT.len);
+
+const markers = [];
+// camera marker
+if (D.camera && D.camera.center){ const c=D.camera.center; const cm=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.07,0.05), new THREE.MeshStandardMaterial({color:0x555555}));
+  cm.position.copy(w2t(c[0],c[1],c[2])); scene.add(cm);
+  const el=document.createElement('div'); el.className='lab'; el.textContent='camera'; document.getElementById('labels').appendChild(el); markers.push({pos:cm.position,el}); }
+
+// ball + markers
+const ball = new THREE.Mesh(new THREE.SphereGeometry(PIT.ball_r*1.6,24,16), new THREE.MeshStandardMaterial({color:0xc1121f, roughness:.4}));
+scene.add(ball);
+const M = D.metrics;
+function marker(key,color,text){ if(!M[key]) return; const p=M[key].pos;
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.045,16,12), new THREE.MeshBasicMaterial({color})); m.position.copy(w2t(p[0],p[1],p[2])); scene.add(m);
+  const el=document.createElement('div'); el.className='lab'; el.textContent=text; document.getElementById('labels').appendChild(el); markers.push({pos:m.position,el}); }
+marker('release',0x2ecc71,'release'); marker('bounce',0xf1c40f,'bounce'); marker('impact',0xe74c3c,'impact');
+
+// trail (rebuilt from the samples up to "now" so it always ends exactly at the ball)
+const trail = new THREE.Group(); scene.add(trail);
+function clearTrail(){ while(trail.children.length){ const o=trail.children.pop(); o.geometry.dispose(); o.material.dispose(); } }
+function tube(points,color){
+  const pts=[points[0]]; for(let i=1;i<points.length;i++){ if(points[i].distanceTo(pts[pts.length-1])>1e-3) pts.push(points[i]); }
+  if(pts.length<2) return;
+  const curve=new THREE.CatmullRomCurve3(pts,false,'centripetal');
+  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,pts.length*2),0.028,10,false), new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:0.35,roughness:.35,metalness:.05}));
+  trail.add(mesh);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.028,10,8), mesh.material.clone()); cap.position.copy(pts[0]); trail.add(cap); }
+function posAt(t){ t=Math.min(Math.max(t,T0),T1); let i=0; while(i<N-2 && D.t[i+1]<t) i++;
+  const a=D.t[i], b=D.t[i+1], f=b>a?(t-a)/(b-a):0; return PTS[i].clone().lerp(PTS[i+1],Math.min(Math.max(f,0),1)); }
+function buildTrail(t){ clearTrail();
+  const grow=document.getElementById('grow').checked; const tt=grow?t:T1;
+  const pre=[], post=[];
+  for(let i=0;i<N;i++){ if(D.t[i]>tt) break; (i<=IB?pre:post).push(PTS[i]); }
+  const cur=posAt(tt);
+  if(tt<=TB){ pre.push(cur); } else { if(!post.length) post.push(PTS[IB]); post.push(cur); if(tt<T1+1) {} }
+  if(pre.length>1) tube(pre,0x2447b8);
+  if(post.length>1) tube(post,0x7a97e6); }
+
+// camera controls (orbit / zoom / pan)
+const target=new THREE.Vector3(PIT.len*0.45,0.8,0); let yaw=0,pitch=0.3,dist=20;
+function setView(camWorld,tgtWorld,fov){ camera.fov=fov||50; camera.updateProjectionMatrix(); const c=w2t(...camWorld), t=w2t(...tgtWorld); target.copy(t); const d=c.clone().sub(t);
+  dist=d.length(); pitch=Math.asin(d.y/dist); yaw=Math.atan2(d.z,d.x); applyCam(); }
+function applyCam(){ camera.position.set(target.x+dist*Math.cos(pitch)*Math.cos(yaw), target.y+dist*Math.sin(pitch), target.z+dist*Math.cos(pitch)*Math.sin(yaw)); camera.lookAt(target); }
+const camC = D.camera && D.camera.center ? D.camera.center : [-3,0,1.4];
+const VIEWS = {
+  'Camera view':   ()=>{ const f=(D.camera&&D.camera.forward)||[1,0,0]; setView(camC,[camC[0]+f[0]*15,camC[1]+f[1]*15,camC[2]+f[2]*15], (D.camera&&D.camera.vfov_deg)||50); },
+  'Bowler end':    ()=>setView([-4.5,0.0,1.7],[PIT.len*0.65,0,0.5]),
+  'Side':          ()=>setView([PIT.len*0.5,-15,1.3],[PIT.len*0.5,0,1.0]),
+  'Top':           ()=>setView([PIT.len*0.5,-0.5,15.5],[PIT.len*0.5,0,0]),   // bowler at the left, left side of the pitch at the top
+  'Batter end':    ()=>setView([PIT.len+4.5,0.4,1.7],[PIT.len*0.3,0,0.5]),
+  'Follow ball':   ()=>{ follow=true; }
+};
+let follow=false;
+const vb=document.getElementById('views');
+Object.keys(VIEWS).forEach(k=>{ const b=document.createElement('button'); b.textContent=k; b.onclick=()=>{ follow=false; VIEWS[k](); }; vb.appendChild(b); });
+let drag=null;
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY,pan:(e.button===2||e.shiftKey)}; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerup',()=>drag=null);
+canvas.addEventListener('pointermove',e=>{ if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
+  if(drag.pan){ const right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0), up=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+    target.addScaledVector(right,-dx*dist*0.0016).addScaledVector(up,dy*dist*0.0016); }
+  else { yaw-=dx*0.006; pitch=Math.min(Math.max(pitch+dy*0.006,-0.05),1.55); }
+  applyCam(); });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); dist=Math.min(Math.max(dist*Math.exp(e.deltaY*0.001),1.5),150); applyCam(); },{passive:false});
+
+// stats panel
+const km=v=>v.toFixed(1);
+let rows=[['release speed', km(M.release.speed_kmh)+' km/h'],['release height', M.release.pos[2].toFixed(2)+' m']];
+if(M.bounce){ rows.push(['bounce from batter stumps', M.bounce.distance_from_batter_stumps_m.toFixed(2)+' m'],['bounce line (Y)', (M.bounce.line_y_m>=0?'+':'')+M.bounce.line_y_m.toFixed(2)+' m'],
+  ['speed before / after bounce', km(M.bounce.speed_before_kmh)+' / '+km(M.bounce.speed_after_kmh)],['bounce angle in / out', M.bounce.angle_before_deg.toFixed(1)+'\u00b0 / '+M.bounce.angle_after_deg.toFixed(1)+'\u00b0']); }
+rows.push(['impact speed', km(M.impact.speed_kmh)+' km/h']);
+if(M.at_stumps_projected) rows.push(['projected at stumps', (M.at_stumps_projected.would_hit_stumps?'HITTING':'missing')+' (h '+M.at_stumps_projected.height_m.toFixed(2)+' m)']);
+rows.push(['fit error', D.fit.rms_px.toFixed(1)+' px rms']);
+document.getElementById('stats').innerHTML=rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
+
+// ===== crease planes (light red, transparent) + release / impact / crossing heights =====
+(function(){
+  const XB = PIT.popping, XT = PIT.len - PIT.popping;                  // bowling / batting popping crease (world X)
+  const WID = PIT.half_w*2, HGT = Math.max(3.0, Math.max.apply(null, D.z) + 0.6);
+  const RED = 0xff5a5a, RED2 = 0xff2b2b;
+  const group = new THREE.Group(); scene.add(group);
+  const labels = [];
+
+  function label(p3, html, color, dy){
+    const el = document.createElement('div'); el.className = 'lab'; el.innerHTML = html;
+    el.style.borderLeft = '3px solid ' + color; el.style.textAlign = 'left';
+    document.getElementById('labels').appendChild(el); labels.push({pos: p3.clone(), el, dy: dy || 0});
+  }
+  function dot(p3, color, r){
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), new THREE.MeshBasicMaterial({color, depthTest:false}));
+    m.position.copy(p3); m.renderOrder = 10; group.add(m);
+  }
+  function dropLine(p3){
+    const g = new THREE.BufferGeometry().setFromPoints([p3, new THREE.Vector3(p3.x, 0.004, p3.z)]);
+    group.add(new THREE.Line(g, new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.9})));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.085, 24), new THREE.MeshBasicMaterial({color:0xffffff, side:THREE.DoubleSide, transparent:true, opacity:0.95}));
+    ring.rotation.x = -Math.PI/2; ring.position.set(p3.x, 0.008, p3.z); group.add(ring);
+  }
+  function dashed(a, b, color){
+    const g = new THREE.BufferGeometry().setFromPoints([a, b]);
+    const l = new THREE.Line(g, new THREE.LineDashedMaterial({color, dashSize:0.12, gapSize:0.08}));
+    l.computeLineDistances(); group.add(l);
+  }
+
+  // ---- the two planes
+  const planeMat = new THREE.MeshBasicMaterial({color:RED, transparent:true, opacity:0.22, side:THREE.DoubleSide, depthWrite:false});
+  function crease(X, name){
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(WID, HGT), planeMat);
+    pl.rotation.y = Math.PI/2; pl.position.set(X, HGT/2, 0); group.add(pl);          // spans the pitch width and up in the air
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(pl.geometry), new THREE.LineBasicMaterial({color:RED2}));
+    edges.rotation.copy(pl.rotation); edges.position.copy(pl.position); group.add(edges);
+    const band = new THREE.Mesh(new THREE.PlaneGeometry(0.12, WID), new THREE.MeshBasicMaterial({color:RED2, transparent:true, opacity:0.8, depthWrite:false}));
+    band.rotation.x = -Math.PI/2; band.position.set(X, 0.006, 0); group.add(band);   // red strip on the ground = the crease line
+    label(new THREE.Vector3(X, HGT, 0), name, '#ff5a5a', 0);
+  }
+  crease(XB, 'bowling crease plane');
+  crease(XT, 'batting crease plane');
+
+  // ---- where the path passes through a plane (null if it never does)
+  function crossing(X){
+    for(let i = 0; i < N-1; i++){
+      const a = D.x[i], b = D.x[i+1];
+      if(a !== b && (a-X)*(b-X) <= 0){
+        const f = (X-a)/(b-a);
+        return {y: D.y[i]+f*(D.y[i+1]-D.y[i]), z: D.z[i]+f*(D.z[i+1]-D.z[i])};
+      }
+    }
+    return null;
+  }
+
+  // ---- release on the bowling plane, impact on the batting plane
+  function pointOnPlane(key, X, color, hex, name){
+    if(!M[key]) return;
+    const p = M[key].pos, real = w2t(p[0], p[1], p[2]), onPlane = w2t(X, p[1], p[2]);
+    dot(onPlane, hex, 0.07); dropLine(onPlane);
+    let extra = '';
+    if(Math.abs(p[0]-X) > 0.05){
+      dashed(real, onPlane, hex);                                                      // joins the real point to its spot on the plane
+      extra = ' <span style="opacity:.7">(real X=' + p[0].toFixed(1) + ' m)</span>';
+    }
+    label(onPlane, name + ' &middot; <b>' + p[2].toFixed(2) + ' m</b>' + extra, color, 0);
+  }
+  pointOnPlane('release', XB, '#2ecc71', 0x2ecc71, 'release');
+  pointOnPlane('impact',  XT, '#ff6b6b', 0xe74c3c, 'impact');
+
+  // ---- where the ball really passes through each plane
+  [[XB, 'bowling'], [XT, 'batting']].forEach(function(pair){
+    const X = pair[0], nm = pair[1], c = crossing(X);
+    if(!c) return;
+    const key = (X === XB) ? 'release' : 'impact';
+    if(M[key] && Math.abs(M[key].pos[0]-X) <= 0.05) return;                         // same spot as the release/impact marker
+    const p = w2t(X, c.y, c.z);
+    dot(p, 0xffffff, 0.055); dropLine(p);
+    label(p, 'passes ' + nm + ' crease &middot; <b>' + c.z.toFixed(2) + ' m</b>', '#ffffff', 40);
+  });
+
+  // ---- on/off switch + label placement (own loop, so it can hide the labels too)
+  const row = document.createElement('div'); row.className = 'row';
+  row.innerHTML = '<label><input type="checkbox" id="planes" checked> crease planes + heights</label>';
+  document.getElementById('grow').closest('.card').appendChild(row);
+  document.getElementById('planes').onchange = function(e){ group.visible = e.target.checked; };
+  function placeLabels(){
+    const on = document.getElementById('planes').checked;
+    labels.forEach(function(m){
+      const v = m.pos.clone().project(camera);
+      m.el.style.display = (on && v.z < 1) ? 'block' : 'none';
+      m.el.style.left = ((v.x*0.5+0.5)*innerWidth) + 'px';
+      m.el.style.top  = ((-v.y*0.5+0.5)*innerHeight + m.dy) + 'px';
+    });
+    requestAnimationFrame(placeLabels);
+  }
+  requestAnimationFrame(placeLabels);
+})();
+
+// playback
+let tNow=T0, playing=false, last=performance.now(), lastIdx=-1;
+const scrub=document.getElementById('scrub'), clock=document.getElementById('clock');
+document.getElementById('play').onclick=()=>{ playing=!playing; if(playing&&tNow>=T1-1e-3) tNow=T0; document.getElementById('play').innerHTML=playing?'&#10074;&#10074; Pause':'&#9654; Play'; };
+scrub.oninput=()=>{ tNow=T0+(T1-T0)*scrub.value/1000; };
+document.getElementById('grow').onchange=()=>{ lastIdx=-1; };
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize(); VIEWS['Camera view']();
+tNow=T1;          // start showing the full track; press Play to animate
+
+function frame(now){
+  const dt=(now-last)/1000; last=now;
+  if(playing){ tNow+=dt*parseFloat(document.getElementById('rate').value); if(tNow>=T1){ tNow=T1; playing=false; document.getElementById('play').innerHTML='&#9654; Play'; } }
+  scrub.value=Math.round(1000*(tNow-T0)/(T1-T0)); clock.textContent=((tNow-T0)*1000).toFixed(0)+' ms';
+  const idx=Math.floor((tNow-T0)*240)+(document.getElementById('grow').checked?0:-1000000);
+  if(idx!==lastIdx){ buildTrail(tNow); lastIdx=idx; }
+  ball.position.copy(posAt(tNow));
+  if(follow){ target.lerp(ball.position,0.15); dist=Math.max(dist,6); applyCam(); }
+  renderer.render(scene,camera);
+  markers.forEach(m=>{ const v=m.pos.clone().project(camera); const vis=v.z<1; m.el.style.display=vis?'block':'none';
+    m.el.style.left=((v.x*0.5+0.5)*innerWidth)+'px'; m.el.style.top=((-v.y*0.5+0.5)*innerHeight)+'px'; });
+  requestAnimationFrame(frame);
+}
+buildTrail(T1); requestAnimationFrame(frame);
+window.__ready = true;
+</script></body></html>
